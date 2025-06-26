@@ -1,4 +1,4 @@
-import {test as pwTest} from "@playwright/test";
+import {Locator, test as pwTest} from "@playwright/test";
 import {PwContext, Queue} from "./pw-global";
 
 const runContext = {
@@ -26,6 +26,18 @@ const runContext = {
     }
 }
 
+function lock() {
+    let release = () => {
+    };
+    const promise = new Promise(r => release = r);
+    return {
+        wait: () => promise,
+        release: () => {
+            release();
+        }
+    }
+}
+
 
 export const test = async (name: string, cb: () => void) => {
     pwTest(name, async ({page, context}) => {
@@ -36,13 +48,6 @@ export const test = async (name: string, cb: () => void) => {
             open(pageUrl) {
                 q.push(async (guid) => {
                     await runContext.get(guid).currentPage.goto(pageUrl)
-                })
-            },
-            click(selector) {
-                q.push(async (guid) => {
-                    const element = runContext.get(guid).currentPage.locator(selector);
-                    await element.isVisible();
-                    await element.click()
                 })
             },
             newTab() {
@@ -57,6 +62,41 @@ export const test = async (name: string, cb: () => void) => {
                     runContext.set(guid, {currentPage: newActivePage})
                     await newActivePage.bringToFront();
                 })
+            },
+            getElement(selector) {
+                let resolvedSubj = lock()
+                let element: Locator;
+
+                q.push(async (guid) => {
+                    element = runContext.get(guid).currentPage.locator(selector)
+
+                    resolvedSubj.release()
+                })
+
+                return {
+                    click: () => {
+                        q.push(async (_) => {
+                            await resolvedSubj.wait()
+
+                            console.log("ELEMENT", element)
+                            await element.nth(0).click();
+                        })
+                    }
+                }
+            },
+            async getElementAsync(selector) {
+                let resolvedSubj = lock()
+                let element: Locator;
+
+                q.push(async (guid) => {
+                    element = runContext.get(guid).currentPage.locator(selector)
+
+                    resolvedSubj.release()
+                })
+
+                await resolvedSubj.wait()
+
+                return element;
             }
         }
         runContext.set(guid, {q, pages: [page], context, currentPage: page})

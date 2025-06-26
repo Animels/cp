@@ -1,11 +1,14 @@
+import {Locator} from "@playwright/test";
+
 export interface PwGlobal {
     open: (page: string) => void;
-
-    click: (selector: string) => void;
 
     newTab: () => void;
 
     chooseTab: (page: number) => void;
+
+    getElementAsync: (selector: string) => Promise<Locator>;
+    getElement: (selector: string) => { click: () => void };
 }
 
 export type Queue = ((guid: string) => Promise<void>)[];
