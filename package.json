@@ -4,8 +4,8 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "test": "npx playwright test ./src/tests/*",
-    "test:debug": "npx playwright test ./src/tests/* --debug"
+    "test": "npx playwright test tests/*",
+    "test:debug": "npx playwright test tests/* --debug"
   },
   "dependencies": {
     "@playwright/test": "^1.53.1",
